@@ -50,7 +50,7 @@ impl<A: CvitekPhyTraits> CvitekPhyDevice<A>
         else {
             unsafe{write_volatile(A::phys_to_virt(0x03009064) as *mut u32, 0x5a5a);}
         }
-        val_base= unsafe { read_volatile( EPHY_EFUSE_VALID_BIT_BASE as *mut u32 ) };
+        val_base= unsafe { read_volatile( A::phys_to_virt(EPHY_EFUSE_VALID_BIT_BASE as usize) as *mut u32 ) };
         val = val_base & EPHY_EFUSE_EXECHORC_FLAG;
         if val == EPHY_EFUSE_EXECHORC_FLAG
         {
@@ -61,7 +61,7 @@ impl<A: CvitekPhyTraits> CvitekPhyDevice<A>
         else {
             unsafe{write_volatile(A::phys_to_virt(0x03009054) as *mut u32, 0x0000);}
         }
-        val_base= unsafe { read_volatile( EPHY_EFUSE_VALID_BIT_BASE as *mut u32 ) };
+        val_base= unsafe { read_volatile( A::phys_to_virt(EPHY_EFUSE_VALID_BIT_BASE as usize) as *mut u32 ) };
         val = val_base & EPHY_EFUSE_TXRXTERM_FLAG;
         if val == EPHY_EFUSE_TXRXTERM_FLAG
         {
@@ -336,11 +336,11 @@ impl<A: CvitekPhyTraits> CvitekPhyDevice<A>
 
         Ok(id)
     }
-    fn clrsetbits(&self,addr: u32,clear:u32, set:u32){
+    fn clrsetbits(&self,physical_addr: u32,clear:u32, set:u32){
         unsafe{ 
-            let mut val:u32=read_volatile(A::phys_to_virt(addr as usize) as *mut u32);
+            let mut val:u32=read_volatile(A::phys_to_virt(physical_addr as usize) as *mut u32);
             val &= !clear;
-            write_volatile(addr as *mut u32, val); 
+            write_volatile(A::phys_to_virt(physical_addr as usize) as *mut u32, val); 
         }
     }
     fn eth_config(&self)

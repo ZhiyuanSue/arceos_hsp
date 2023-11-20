@@ -33,6 +33,9 @@ use memory_addr::{PhysAddr, VirtAddr};
 pub use self::arch::*;
 pub use self::bits64::PageTable64;
 
+// pub use page_table_entry::aarch6
+pub use page_table_entry::riscv::PTEFlags;
+
 #[doc(no_inline)]
 pub use page_table_entry::{GenericPTE, MappingFlags};
 

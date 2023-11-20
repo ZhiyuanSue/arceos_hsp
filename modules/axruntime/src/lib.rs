@@ -225,15 +225,17 @@ fn init_allocator() {
 
 #[cfg(feature = "paging")]
 fn remap_kernel_memory() -> Result<(), axhal::paging::PagingError> {
-    use axhal::mem::{memory_regions, phys_to_virt};
-    use axhal::paging::PageTable;
+    use axhal::mem::{memory_regions, phys_to_virt, MemRegion};
+    use axhal::paging::{PageTable, PTEFlags};
     use lazy_init::LazyInit;
-
+    use axhal::paging::MappingFlags;
     static KERNEL_PAGE_TABLE: LazyInit<PageTable> = LazyInit::new();
 
     if axhal::cpu::this_cpu_is_bsp() {
         let mut kernel_page_table = PageTable::try_new()?;
+        let mut x : MemRegion;
         for r in memory_regions() {
+            x = r.clone();
             kernel_page_table.map_region(
                 phys_to_virt(r.paddr),
                 r.paddr,
@@ -241,6 +243,21 @@ fn remap_kernel_memory() -> Result<(), axhal::paging::PagingError> {
                 r.flags.into(),
                 true,
             )?;
+            // ==== PTE flags debugging =====
+            // if x.paddr.as_usize() == 0x0300_0000_usize {
+            //     // x = r;
+            //     let flg = PTEFlags::from(MappingFlags::from(x.flags)) | PTEFlags::A | PTEFlags::D;
+            //     kernel_page_table.update(
+            //         (0xffff_ffc0_0000_0000usize+0x3050120).into(), 
+            //         None, 
+            //         // Some(((flg & !PTEFlags::W) & !PTEFlags::X).into())
+            //         // Some((flg  & !PTEFlags::DV).into())
+            //         Some((flg  | PTEFlags::V).into())
+            //     );
+            //     let t = kernel_page_table.query((0xffff_ffc0_0000_0000usize+0x3050120).into());
+            //     info!("=============update pte flags for 0x3050120 complete==============");
+            //     info!("=============t: {:?}==============", t);
+            // }
         }
         KERNEL_PAGE_TABLE.init_by(kernel_page_table);
     }
