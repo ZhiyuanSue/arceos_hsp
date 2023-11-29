@@ -1201,32 +1201,32 @@ fn receive_loop() -> io::Result {
     0x00, 0x00, 0x00                                /* ... */
     ];
     
-    
     let (addr, port) = (IpAddr::from_str(LOCAL_IP).unwrap(), 65002);
     let socket65002 = UdpSocket::bind((addr, port).into()).unwrap();
-
     let (addr, port) = (IpAddr::from_str(LOCAL_IP).unwrap(), 65003);
     let socket65003 = UdpSocket::bind((addr, port).into()).unwrap();
-
     let (addr, port) = (IpAddr::from_str(LOCAL_IP).unwrap(), 65004);
     let socket65004 = UdpSocket::bind((addr, port).into()).unwrap();
-
     let (addr, port) = (IpAddr::from_str(LOCAL_IP).unwrap(), 65005);
     let socket65005 = UdpSocket::bind((addr, port).into()).unwrap();
-
     let (addr, port) = (IpAddr::from_str(LOCAL_IP).unwrap(), 65007);
     let socket65007 = UdpSocket::bind((addr, port).into()).unwrap();
 
 
     let target_socket_addr = SocketAddr::new(IpAddr::from_str(TARGET_IP).unwrap(), TARGET_PORT);
 
-
+    info!("nic test breakpoint 0");
     socket65003.send_to(buf1, target_socket_addr).unwrap();
+    info!("nic test breakpoint 1");
     socket65002.send_to(buf2, target_socket_addr).unwrap();
+    info!("nic test breakpoint 2");
     socket65004.send_to(buf3, target_socket_addr).unwrap();
 
+    info!("nic test breakpoint 3");
     socket65003.send_to(buf4, target_socket_addr).unwrap();
+    info!("nic test breakpoint 4");
     socket65002.send_to(buf5, target_socket_addr).unwrap();
+    info!("nic test breakpoint 5");
     socket65005.send_to(buf6, target_socket_addr).unwrap();
 
     socket65007.send_to(buf7, target_socket_addr).unwrap();

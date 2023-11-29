@@ -112,71 +112,43 @@ impl <A: CvitekNicTraits,B: CvitekPhyTraits> CvitekNicDevice<A,B> {
     }
 
     pub fn receive(&mut self) -> Option<Packet> {
-
         info!("run into the receive");
-        for i in 0..10 {
-            A::mdelay(2000);
-
-            for i in 0..5 {
-                let rd = self.rx_rings.rd.read_volatile(i).unwrap();
-                let rdes0 = rd.txrx_status;
-                let rdes1 = rd.dmamac_cntl;
-                let rdes2 = rd.dmamac_addr;
-                let rdes3 = rd.dmamac_cntl;
-                let mut status = rdes0 & (1 << 31);
-                if status >> 31 == 1 {
-                    info!("dma own");
-                    return None;
-                }
-
-                log::info!("rd {:x?}", rd);
-            }
-            let value: u32 = unsafe{
-                read_volatile((self.iobase_va + 0x104c) as *mut u32)
-            };
-            log::info!("Current Host rx descriptor -----{:#x?}", value);
-        }
-
-        /*-------------*/
-
-        let mut rx_rings = &mut self.rx_rings;
-        let rd_dma = &mut rx_rings.rd;
-
-        let mut status = 0;
-        let mut idx = rx_rings.idx;
-        let mut clean_idx = 0;
-
-        let rd = rd_dma.read_volatile(idx).unwrap();
+        let rskb_start = 0x9000_0000 as usize;
+        let skb_pa=rskb_start + 0x1000 * self.rx_rings.idx;
+        let skb_va=A::phys_to_virt(skb_pa);
+        let index=self.rx_rings.idx;
+        info!("curr index is {:#x?}",index);
+        let rd = self.rx_rings.rd.read_volatile(index).unwrap();
         let rdes0 = rd.txrx_status;
         let rdes1 = rd.dmamac_cntl;
         let rdes2 = rd.dmamac_addr;
         let rdes3 = rd.dmamac_cntl;
+        let mut status = rdes0 & (1 << 31);
 
-        status = rdes0 & (1 << 31);
+        let value: u32 = unsafe{
+            read_volatile((self.iobase_va + 0x104c) as *mut u32)
+        };
+        info!("Current Host rx descriptor -----{:#x?}", value);
 
         if status >> 31 == 1 {
             info!("dma own");
             return None;
         }
+        let length=(rdes0 & CVI_DESC_RXSTS_FRMLENMSK) >> CVI_DESC_RXSTS_FRMLENSHFT;
 
-        // good frame
-        // clean_idx = idx;
-        let frame_len = rdes1 ;
+        self.rx_rings.idx=(self.rx_rings.idx+1)%DESC_NUM;
 
-        // get data from skb
-        let skb_va = rx_rings.skbuf[idx] as *mut u8;
-        let packet = Packet::new(skb_va, frame_len as usize);
 
-        // alloc new skbuf
-        // let (skb_new_va, skb_new_pa) = A::dma_alloc_pages(1);
-        // rx_rings.set_idx_addr_owner(clean_idx, skb_new_pa);
-        // rx_rings.skbuf[idx] = skb_new_va as _;
+        let packet = Packet::new(skb_va as *mut u8, length as usize);
 
-        rx_rings.idx = (idx + 1) % 512;
+        self.rx_rings.set_idx_addr_owner(index,skb_pa);
         return Some(packet);
+
     }
 
     pub fn transmit(&mut self, packet: Packet) {
+        info!("run into the transmit");
+
 
         let x: &mut [u8] = &mut [
             0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xaa, 0xbb, 0xcc, 0xdd, 0x05, 0x06, 0x08, 0x06, 0x00,0x01, 
@@ -190,49 +162,45 @@ impl <A: CvitekNicTraits,B: CvitekPhyTraits> CvitekNicDevice<A,B> {
 
         let tskb_start = 0x9001_0000 as usize;
 
-        for i in 0..512{
-            let buff_addr = tskb_start + 0x1000 * i;
-            let raw_pointer = x.as_mut_ptr();
-            let packet_pa: usize = tskb_start + 0x1000 * i;
-            let packet_va = A::phys_to_virt(packet_pa);
-            let buff = packet_va as *mut u8;
-            unsafe {
-                core::ptr::copy_nonoverlapping(raw_pointer as *const u8, buff as *mut u8, 0x2a);
-            }
-            let mut td = self.tx_rings.td.read_volatile(i).unwrap();
+        let index=self.tx_rings.idx;
+        let packet_pa: usize = tskb_start + 0x1000 * index;
+        let packet_va = A::phys_to_virt(packet_pa);
+        let raw_pointer = packet.skb_va;
+        unsafe {
+            core::ptr::copy_nonoverlapping(raw_pointer as *const u8, packet_va as *mut u8, 0x2a);
+        }
+        let mut td = self.tx_rings.td.read_volatile(index).unwrap();
 
-            td.dmamac_addr = buff_addr as u32;
-            td.dmamac_cntl = 0x60000156;
-            // td.txrx_status |= 1 << 29;
-            // td.txrx_status |= 1 << 28;
-            td.txrx_status |= 1 << 31;
-            self.tx_rings.td.write_volatile(i, &td);
-            unsafe{
-                core::arch::asm!("fence	ow,ow");
-            }
-            unsafe{
-                write_volatile((self.iobase_va + DMA_XMT_POLL_DEMAND) as *mut u32, 0x1);
-            }
-            A::mdelay(10000);   
-            let value = unsafe{
-                read_volatile((self.iobase_va + 0x1048) as *mut u32)
-            };
+        td.dmamac_addr = packet_pa as u32;
+        td.dmamac_cntl = 0x60000156;
+
+        td.txrx_status |= 1 << 31;
+        self.tx_rings.td.write_volatile(index, &td);
+        unsafe{
+            core::arch::asm!("fence	ow,ow");
+        }
+        unsafe{
+            write_volatile((self.iobase_va + DMA_XMT_POLL_DEMAND) as *mut u32, 0x1);
+        }
+        A::mdelay(10000);   
+        let value = unsafe{
+            read_volatile((self.iobase_va + 0x1048) as *mut u32)
+        };
 
 
-            log::info!("Current Host tx descriptor -----{:#x?}", value);
+        log::info!("Current Host tx descriptor -----{:#x?}", value);
 
-            let intr_status = unsafe{
-                read_volatile((self.iobase_va + 0x1014) as *mut u32)
-            };
-            let state = (intr_status & 0x00700000) >> 20;
-            log::info!("tx state{:?}", state);
+        let intr_status = unsafe{
+            read_volatile((self.iobase_va + 0x1014) as *mut u32)
+        };
+        let state: u32 = (intr_status & 0x00700000) >> 20;
+        log::info!("tx state{:?}", state);
 
-            loop{
-                let mut td = self.tx_rings.td.read_volatile(i).unwrap();
-                log::info!("td {:x?}", td);    
-                if td.txrx_status & ( 1 << 31) == 0{
-                    break;
-                }
+        loop{
+            let mut td = self.tx_rings.td.read_volatile(index).unwrap();
+            log::info!("td {:x?}", td);    
+            if td.txrx_status & ( 1 << 31) == 0{
+                break;
             }
         }
     }
@@ -278,7 +246,7 @@ impl<A:CvitekNicTraits> RxRing<A> {
         for i in 0..16 {
             let buff_addr = rskb_start + 0x1000 * i;
             self.set_idx_addr_owner(i, buff_addr);
-        }        
+        }
     }
     /// Release the next RDes to the DMA engine
     pub fn set_idx_addr_owner(&mut self, idx: usize, skb_phys_addr: usize) {
