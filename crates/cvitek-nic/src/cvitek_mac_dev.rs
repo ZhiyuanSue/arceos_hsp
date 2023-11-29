@@ -135,13 +135,12 @@ impl <A: CvitekNicTraits,B: CvitekPhyTraits> CvitekNicDevice<A,B> {
             return None;
         }
         let length=(rdes0 & CVI_DESC_RXSTS_FRMLENMSK) >> CVI_DESC_RXSTS_FRMLENSHFT;
-
+        self.rx_rings.set_idx_addr_owner(index,skb_pa);
         self.rx_rings.idx=(self.rx_rings.idx+1)%DESC_NUM;
-
 
         let packet = Packet::new(skb_va as *mut u8, length as usize);
 
-        self.rx_rings.set_idx_addr_owner(index,skb_pa);
+        
         return Some(packet);
 
     }
@@ -175,7 +174,8 @@ impl <A: CvitekNicTraits,B: CvitekPhyTraits> CvitekNicDevice<A,B> {
         let value = unsafe{
             read_volatile((self.iobase_va + 0x1048) as *mut u32)
         };
-
+        self.tx_rings.init_tx_desc(index,false);
+        self.tx_rings.idx=(self.tx_rings.idx+1)%DESC_NUM;
 
         log::info!("Current Host tx descriptor -----{:#x?}", value);
 
