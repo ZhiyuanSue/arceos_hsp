@@ -21,7 +21,7 @@ make A=apps/net/cvitek_nic_test ARCH=riscv64 SMP=1 NET=y LOG=info cv1811
 sudo apt-get install ckermit	#安装ckermit
 kermit
 		#进入kermit
-set line /dev/ttyACM1
+set line /dev/ttyACM0
 set speed 115200
 set carrier-watch off
 set handshake     none

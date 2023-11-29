@@ -67,22 +67,6 @@ cfg_if::cfg_if! {
         }
     }
 }
-
-cfg_if::cfg_if! {
-    if #[cfg(net_dev = "cviteknic")] {
-        use super::CvitekNicTraitsImpl;
-        pub struct CvitekNicDriver;
-        register_net_driver!(CvitekNicDriver, driver_net::cviteknic::CvitekNic<CvitekNicTraitsImpl>);
-
-        impl DriverProbe for CvitekNicDriver {
-            fn probe_global() -> Option<AxDeviceEnum> {
-                use driver_net::cviteknic::CvitekNic;
-                let cvitek_nic = CvitekNic::init(CvitekNicTraitsImpl);
-                return Some(AxDeviceEnum::from_net(cvitek_nic));
-            }
-        }
-    }
-}
 cfg_if::cfg_if! {
     if #[cfg(phy_dev = "cvitekphy")] {
         use super::CvitekPhyTraitsImpl;
@@ -94,6 +78,23 @@ cfg_if::cfg_if! {
                 use driver_net::cvitekphy::CvitekPhy;
                 let cvitek_phy = CvitekPhy::init(CvitekPhyTraitsImpl);
                 return Some(AxDeviceEnum::from_phy(cvitek_phy));
+            }
+        }
+    }
+}
+cfg_if::cfg_if! {
+    if #[cfg(net_dev = "cviteknic")] {
+        use super::CvitekNicTraitsImpl;
+        pub struct CvitekNicDriver;
+        register_net_driver!(CvitekNicDriver, driver_net::cviteknic::CvitekNic<CvitekNicTraitsImpl,CvitekPhyTraitsImpl>);
+
+        impl DriverProbe for CvitekNicDriver {
+            fn probe_global() -> Option<AxDeviceEnum> {
+                use driver_net::cviteknic::CvitekNic;
+                use driver_net::cvitekphy::CvitekPhy;
+                let cvitek_phy = CvitekPhy::init(CvitekPhyTraitsImpl).device;
+                let cvitek_nic = CvitekNic::init(CvitekNicTraitsImpl,cvitek_phy);
+                return Some(AxDeviceEnum::from_net(cvitek_nic));
             }
         }
     }

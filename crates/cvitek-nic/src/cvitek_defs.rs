@@ -54,3 +54,9 @@ pub (crate) const CONFIG_RX_DESCR_NUM:usize =16;
 //irq
 
 pub (crate) const GMAC_IRQ:usize = 31;
+
+pub const MAC_ENABLE_TX: u32 = 1 << 3; /* Transmitter Enable */
+pub const MAC_ENABLE_RX: u32 = 1 << 2; /* Receiver Enable */
+
+/* Received Poll Demand */
+pub const DMA_XMT_POLL_DEMAND: usize = 0x00001004;

@@ -30,7 +30,6 @@ impl<A: CvitekPhyTraits> CvitekPhyDevice<A>
         let mut val_base:u32=0;
         let mut val:u32=0;
         let mut tmp_val:u32=0;
-        info!("CvitekPhy configure");
         unsafe{ write_volatile(A::phys_to_virt(0x03009804) as *mut u32, 0x0001) };
         //MII-page5
         unsafe{ write_volatile(A::phys_to_virt(0x0300907c) as *mut u32, 0x0500) };
@@ -194,7 +193,6 @@ impl<A: CvitekPhyTraits> CvitekPhyDevice<A>
 
             write_volatile(A::phys_to_virt(0x03009804) as *mut u32, 0x0000);
         }
-        info!("finish configure cvitekphy");
     }
     pub fn phy_read(&self,phy_addr:u8,reg_addr:u8) -> Result<u16,i32>{
         let mut miiaddr=(( phy_addr as u32) << MIIADDRSHIFT) & MIIADDRMASK;

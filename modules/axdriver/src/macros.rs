@@ -62,14 +62,14 @@ macro_rules! for_each_drivers {
             type $drv_type = crate::drivers::RamDiskDriver;
             $code
         }
-        #[cfg(net_dev = "cviteknic")]
-        {
-            type $drv_type = crate::drivers::CvitekNicDriver;
-            $code
-        }
         #[cfg(phy_dev = "cvitekphy")]
         {
             type $drv_type = crate::drivers::CvitekPhyDriver;
+            $code
+        }
+        #[cfg(net_dev = "cviteknic")]
+        {
+            type $drv_type = crate::drivers::CvitekNicDriver;
             $code
         }
     }};

@@ -13,6 +13,9 @@ pub use cvitek_mac_dev::CvitekNicTraits;
 pub use cvitek_mac_dev::Packet;
 // pub use cvitek_main::Dma;
 
+pub use cvitek_phy::{CvitekPhyDevice, CvitekPhyTraits};
+
+
 pub struct RxBuffer {
     pub packet: Packet,
 }

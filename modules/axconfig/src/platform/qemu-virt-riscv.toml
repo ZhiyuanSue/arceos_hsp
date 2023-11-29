@@ -27,6 +27,12 @@ mmio-regions = [
     # ["0x0451_0000", "0x1_0000"],    # ethernet0
     # ["0x0452_0000", "0x1_0000"],    # ethernet1
     ["0x0407_0000", "0x1_0000"],    # ethernet0
+
+    ["0x8900_0000", "0x6_0000"],    # rx/tx des
+    
+    ["0x9000_0000", "0x1_0000"],    # rx buffer
+    ["0x9001_0000", "0x1_0000"],    # tx buffer
+
     ["0x0502_0000", "0x1_0000"],
 ]
 # VirtIO MMIO regions with format (`base_paddr`, `size`).

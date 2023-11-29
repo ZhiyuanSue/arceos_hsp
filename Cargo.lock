@@ -600,6 +600,7 @@ name = "cvitek-nic"
 version = "0.1.0"
 dependencies = [
  "bit_field",
+ "cvitek-phy",
  "log",
  "smoltcp 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "volatile 0.3.0",

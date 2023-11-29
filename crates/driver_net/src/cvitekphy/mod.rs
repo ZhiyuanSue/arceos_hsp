@@ -9,7 +9,7 @@ pub struct CvitekPhy<A>
 where
     A: CvitekPhyTraits,
 {
-    device: CvitekPhyDevice<A>,
+    pub device: CvitekPhyDevice<A>,
     phantom: PhantomData<A>,
 }
 

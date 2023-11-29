@@ -1,5 +1,6 @@
 use alloc::sync::Arc;
 use cvitek_nic::Packet;
+use cvitek_phy::CvitekPhyTraits;
 use driver_common::BaseDriverOps;
 use driver_common::DevError;
 use driver_common::DevResult;
@@ -16,28 +17,31 @@ use core::ptr::{read_volatile, write_volatile};
 
 use crate::TxBuf;
 use super::CvitekNicDevice;
+pub use cvitek_phy::CvitekPhyDevice;
 
-unsafe impl<A: CvitekNicTraits> Sync for CvitekNic<A> {}
-unsafe impl<A: CvitekNicTraits> Send for CvitekNic<A> {}
+unsafe impl<A: CvitekNicTraits,B: CvitekPhyTraits> Sync for CvitekNic<A,B> {}
+unsafe impl<A: CvitekNicTraits,B: CvitekPhyTraits> Send for CvitekNic<A,B> {}
 
 pub use super::CvitekNicTraits;
 
-pub struct CvitekNic<A>
+pub struct CvitekNic<A,B>
 where
     A: CvitekNicTraits,
+    B: CvitekPhyTraits,
 {
-    device: CvitekNicDevice<A>,
+    device: CvitekNicDevice<A,B>,
     phantom: PhantomData<A>,
 }
 
 pub (crate) const GMAC_REG_BASE_ADDR: usize = 0x0407_0000;
 
-impl <A> CvitekNic<A> 
+impl <A,B> CvitekNic<A,B> 
 where
     A: CvitekNicTraits,
+    B: CvitekPhyTraits,
 {
-    pub fn init(traits_impl: A) -> Self {
-        let device = CvitekNicDevice::new(GMAC_REG_BASE_ADDR);
+    pub fn init(traits_impl: A,phy: CvitekPhyDevice<B>) -> Self {
+        let device = CvitekNicDevice::new(GMAC_REG_BASE_ADDR,phy);
         Self {
             device,
             phantom: PhantomData,
@@ -45,7 +49,7 @@ where
     }
 }
 
-impl <A:CvitekNicTraits> BaseDriverOps for CvitekNic<A> {
+impl <A:CvitekNicTraits,B: CvitekPhyTraits> BaseDriverOps for CvitekNic<A,B> {
     fn device_name(&self) -> &str {
         "cvitek_nic"
     }
@@ -55,7 +59,7 @@ impl <A:CvitekNicTraits> BaseDriverOps for CvitekNic<A> {
     }
 }
 
-impl<A:CvitekNicTraits> NetDriverOps for CvitekNic<A> {
+impl<A:CvitekNicTraits,B: CvitekPhyTraits> NetDriverOps for CvitekNic<A,B> {
     fn mac_address(&self) -> crate::EthernetAddress {
         crate::EthernetAddress(self.device.read_mac_address())
     }
